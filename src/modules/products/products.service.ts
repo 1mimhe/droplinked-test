@@ -1,14 +1,14 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Product, ProductDocument } from './schemas/product.base.schema';
+import { Product } from './schemas/product.base.schema';
 import { DigitalProduct } from './schemas/digital-product.schema';
-import { PhysicalProduct } from './schemas/physical-product.schema';
 import { CreateDigitalProductDto } from './dto/create-digital-product.dto';
-import { ProductStatus } from '../../common/enums/product.enums';
+import { ProductStatus, ProductType } from '../../common/enums/product.enums';
 
 @Injectable()
 export class ProductsService {
@@ -31,6 +31,22 @@ export class ProductsService {
       collectionId: dto.collectionId ? new Types.ObjectId(dto.collectionId) : undefined,
     });
     return newProduct.save();
+  }
+
+  async updateDigital(id: string, dto: Partial<CreateDigitalProductDto>): Promise<Product> {
+    const existing = await this.digitalProductModel.findById(id);
+    if (!existing) throw new NotFoundException('Product not found');
+    if (existing.type !== ProductType.DIGITAL) throw new BadRequestException('Product is not Digital');
+
+    const merged = { ...existing.toObject(), ...dto };
+
+    if (merged.status === ProductStatus.PUBLISHED) {
+      this.validateDigitalPublish(merged as CreateDigitalProductDto);
+    }
+
+    return this.digitalProductModel
+      .findByIdAndUpdate(id, dto, { new: true })
+      .exec() as Promise<Product>;
   }
 
   // ============================================
