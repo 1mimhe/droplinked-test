@@ -101,6 +101,31 @@ export class ProductsService {
     return newProduct.save();
   }
 
+  async updatePhysical(id: string, dto: Partial<CreatePhysicalProductDto>): Promise<Product> {
+    const existing = await this.physicalProductModel.findById(id);
+    if (!existing) throw new NotFoundException('Product not found');
+    if (existing.type !== ProductType.PHYSICAL) throw new BadRequestException('Product is not Physical');
+
+    const merged = { ...existing.toObject(), ...dto };
+
+    // Validate Publish Rules
+    if (merged.status === ProductStatus.PUBLISHED) {
+      this.validatePhysicalPublish(merged as CreatePhysicalProductDto);
+    }
+
+    // Validate SKU integrity if variants or SKUs had changes
+    if (dto.variantGroups || dto.skus) {
+      this.validateSkuIntegrity(
+        dto.variantGroups || existing.variantGroups, 
+        dto.skus || existing.skuMatrix
+      );
+    }
+
+    return this.physicalProductModel
+      .findByIdAndUpdate(id, dto, { new: true })
+      .exec() as Promise<Product>;
+  }
+
   // ============================================
   // Validation Logics
   // ============================================
@@ -160,6 +185,31 @@ export class ProductsService {
     if (errors.length > 0) {
       throw new BadRequestException({ message: 'Validation Failed', errors });
     }
+  }
+
+  private validateSkuIntegrity(variants: VariantGroupDto[], skus: SkuDto[]) {
+    // Check Expected Count
+    const expectedCount = variants.reduce((acc, group) => acc * group.values.length, 1);
+    if (skus.length !== expectedCount) {
+      throw new BadRequestException(
+        `Variant configuration requires ${expectedCount} SKUs, but received ${skus.length}`
+      );
+    }
+
+    // Validate Values
+    const allowedValues = new Set(variants.flatMap(v => v.values));
+
+    skus.forEach((sku, index) => {
+      if (!sku.variantCombination || sku.variantCombination.length !== variants.length) {
+        throw new BadRequestException(`SKU #${index} variant combination length mismatch`);
+      }
+
+      sku.variantCombination.forEach(val => {
+        if (!allowedValues.has(val)) {
+          throw new BadRequestException(`SKU #${index} contains invalid value: "${val}"`);
+        }
+      });
+    });
   }
 
   // ============================================

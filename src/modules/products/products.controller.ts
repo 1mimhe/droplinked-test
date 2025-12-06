@@ -18,8 +18,9 @@ import {
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { CreateDigitalProductDto } from './dto/create-digital-product.dto';
-import { UpdateDigitalProductDto } from './dto/update-product.dto';
+import { UpdateDigitalProductDto, UpdatePhysicalProductDto } from './dto/update-product.dto';
 import { ProductStatus, ProductType } from 'src/common/enums/product.enums';
+import { CreatePhysicalProductDto } from './dto/create-physical-product.dto';
 
 @ApiTags('Product')
 @Controller('products')
@@ -36,6 +37,18 @@ export class ProductsController {
   @ApiResponse({ status: 400, description: 'Validation failed' })
   createDigital(@Body() dto: CreateDigitalProductDto) {
     return this.productsService.createDigital(dto);
+  }
+
+  @Post('physical')
+  @ApiOperation({
+    summary: 'Create Physical Product',
+    description: 'Creates a physical product. Auto-generates SKU Matrix from variants. Requires Dimensions and Weight if Published.',
+  })
+  @ApiBody({ type: CreatePhysicalProductDto })
+  @ApiResponse({ status: 201, description: 'Physical Product created successfully' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  createPhysical(@Body() dto: CreatePhysicalProductDto) {
+    return this.productsService.createPhysical(dto);
   }
 
   @Get()
@@ -73,5 +86,19 @@ export class ProductsController {
     @Body() dto: UpdateDigitalProductDto
   ) {
     return this.productsService.updateDigital(id, dto);
+  }
+
+  @Patch('physical/:id')
+  @ApiOperation({
+    summary: 'Update Physical Product',
+    description: 'Updates a physical product. Modifying variants will regenerate the SKU Matrix while preserving prices.',
+  })
+  @ApiParam({ name: 'id', example: '60d5ecb8b392d7001f4e3b11' })
+  @ApiBody({ type: CreatePhysicalProductDto, required: false })
+  updatePhysical(
+    @Param('id') id: string, 
+    @Body() dto: UpdatePhysicalProductDto
+  ) {
+    return this.productsService.updatePhysical(id, dto);
   }
 }
