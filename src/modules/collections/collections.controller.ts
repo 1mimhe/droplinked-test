@@ -19,8 +19,9 @@ import {
 } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
+import { UpdateCollectionDto } from './dto/update-collection.dto';
 
-@ApiTags('Collections')
+@ApiTags('Collection')
 @Controller('collections')
 export class CollectionsController {
   constructor(private readonly collectionsService: CollectionsService) {}
@@ -81,5 +82,29 @@ export class CollectionsController {
   })
   findOne(@Param('id') id: string) {
     return this.collectionsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ 
+    summary: 'Update collection',
+    description: 'Update collection details'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Collection ID to update'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Collection updated successfully'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Collection not found' 
+  })
+  update(
+    @Param('id') id: string, 
+    @Body() updateCollectionDto: UpdateCollectionDto
+  ) {
+    return this.collectionsService.update(id, updateCollectionDto);
   }
 }

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Collection, CollectionDocument } from './schemas/collection.schema';
 import { CreateCollectionDto } from './dto/create-collection.dto';
+import { UpdateCollectionDto } from './dto/update-collection.dto';
 
 @Injectable()
 export class CollectionsService {
@@ -38,5 +39,21 @@ export class CollectionsService {
     }
 
     return collection;
+  }
+
+  async update(
+    id: string, 
+    updateCollectionDto: UpdateCollectionDto
+  ): Promise<Collection> {
+    const updated = await this.collectionModel
+      .findByIdAndUpdate(id, updateCollectionDto, { new: true })
+      .populate('merchantId')
+      .exec();
+
+    if (!updated) {
+      throw new NotFoundException(`Collection with ID ${id} not found`);
+    }
+
+    return updated;
   }
 }
