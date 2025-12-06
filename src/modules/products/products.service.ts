@@ -9,6 +9,9 @@ import { Product, ProductDocument } from './schemas/product.base.schema';
 import { DigitalProduct } from './schemas/digital-product.schema';
 import { CreateDigitalProductDto } from './dto/create-digital-product.dto';
 import { ProductStatus, ProductType } from '../../common/enums/product.enums';
+import { CreatePhysicalProductDto } from './dto/create-physical-product.dto';
+import { VariantGroupDto } from './dto/shared/variant.dto';
+import { SkuDto } from './dto/shared/sku.dto';
 
 @Injectable()
 export class ProductsService {
@@ -87,5 +90,90 @@ export class ProductsService {
     if (errors.length > 0) {
       throw new BadRequestException({ message: 'Validation Failed', errors });
     }
+  }
+
+  // ============================================
+  // SKU Matrix Generation
+  // ============================================
+
+  /**
+   * Generate SKU matrix from variant groups
+   */
+  private generateSkuMatrix(
+    variantGroups: VariantGroupDto[],
+    existingSKUs: SkuDto[] = [],
+  ): any[] {
+    if (!variantGroups || variantGroups.length === 0) {
+      return [];
+    }
+
+    // Generate all variant combinations
+    const combinations = this.generateVariantCombinations(variantGroups);
+
+    // Create SKU for each combination
+    const skus = combinations.map((combination) => {
+      const skuCode = this.generateSkuCode(combination);
+
+      // Check if SKU data exists in provided data
+      const existingSKU = existingSKUs.find((sku) => {
+        if (!sku.variantCombination) return false;
+        return (
+          JSON.stringify(sku.variantCombination) ===
+          JSON.stringify(combination)
+        );
+      });
+
+      return {
+        skuCode,
+        variantCombination: combination,
+        price: existingSKU?.price || 0,
+        quantity: existingSKU?.quantity || 0,
+        externalId: existingSKU?.externalId || undefined,
+      };
+    });
+
+    return skus;
+  }
+
+  /**
+   * Generate all possible variant combinations
+   */
+  private generateVariantCombinations(
+    variantGroups: any[],
+  ): Record<string, string>[] {
+    if (variantGroups.length === 0) return [{}];
+
+    if (variantGroups.length === 1) {
+      return variantGroups[0].values.map((v: any) => ({
+        [variantGroups[0].name]: v.value,
+      }));
+    }
+
+    // Two variant groups - create cartesian product
+    const combinations: Record<string, string>[] = [];
+    const group1 = variantGroups[0];
+    const group2 = variantGroups[1];
+
+    group1.values.forEach((v1: any) => {
+      group2.values.forEach((v2: any) => {
+        combinations.push({
+          [group1.name]: v1.value,
+          [group2.name]: v2.value,
+        });
+      });
+    });
+
+    return combinations;
+  }
+
+  /**
+   * Generate SKU code from variant combination
+   */
+  private generateSkuCode(combination: Record<string, string>): string {
+    const values = Object.values(combination)
+      .map((v) => v.toUpperCase().replace(/\s+/g, '-'))
+      .join('-');
+
+    return `SKU-${values}`;
   }
 }
