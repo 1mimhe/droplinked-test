@@ -47,5 +47,4 @@ mongod
 npm run start:dev
 ```
 
-#### 5. Access the API Documentation
-- **At**: `http://localhost:3000/api/docs`
+#### 5. Access the API Documentation att `http://localhost:3000/api/docs`
