@@ -5,6 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MerchantsModule } from '../merchants/merchants.module';
+import { CollectionsModule } from '../collections/collections.module';
+import { ProductsModule } from '../products/products.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { MerchantsModule } from '../merchants/merchants.module';
       inject: [ConfigService], 
     }),
     MerchantsModule,
+    CollectionsModule,
+    ProductsModule,
   ],
   controllers: [AppController],
   providers: [
