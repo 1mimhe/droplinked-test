@@ -126,6 +126,12 @@ export class ProductsService {
       .exec() as Promise<Product>;
   }
 
+  // Remove products
+  async remove(id: string): Promise<void> {
+    const result = await this.productModel.findByIdAndDelete(id).exec();
+    if (!result) throw new NotFoundException('Product not found');
+  }
+
   // ============================================
   // Validation Logics
   // ============================================

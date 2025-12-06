@@ -7,6 +7,9 @@ import {
   Get,
   Query,
   ParseEnumPipe,
+  Delete,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -100,5 +103,14 @@ export class ProductsController {
     @Body() dto: UpdatePhysicalProductDto
   ) {
     return this.productsService.updatePhysical(id, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a product' })
+  @ApiResponse({ status: 204, description: 'Deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  remove(@Param('id') id: string) {
+    return this.productsService.remove(id);
   }
 }
