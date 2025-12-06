@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-import { Product } from './schemas/product.base.schema';
+import { Product, ProductDocument } from './schemas/product.base.schema';
 import { DigitalProduct } from './schemas/digital-product.schema';
 import { CreateDigitalProductDto } from './dto/create-digital-product.dto';
 import { ProductStatus, ProductType } from '../../common/enums/product.enums';
@@ -13,8 +13,28 @@ import { ProductStatus, ProductType } from '../../common/enums/product.enums';
 @Injectable()
 export class ProductsService {
   constructor(
+    @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(DigitalProduct.name) private digitalProductModel: Model<DigitalProduct>,
   ) {}
+
+  // ============================================
+  // READ Operations
+  // ============================================
+
+  async findAll(query: { merchantId?: string; type?: ProductType; status?: ProductStatus }) {
+    const filter: any = {};
+    if (query.merchantId) filter.merchantId = new Types.ObjectId(query.merchantId);
+    if (query.type) filter.type = query.type;
+    if (query.status) filter.status = query.status;
+
+    return this.productModel.find(filter).sort({ createdAt: -1 }).exec();
+  }
+
+  async findOne(id: string): Promise<Product> {
+    const product = await this.productModel.findById(id).exec();
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+    return product;
+  }
 
   // ============================================
   // Digital Product Operations
