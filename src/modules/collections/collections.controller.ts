@@ -1,12 +1,21 @@
 import {
   Controller,
+  Get,
   Post,
   Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiQuery,
+  ApiParam,
 } from '@nestjs/swagger';
 import { CollectionsService } from './collections.service';
 import { CreateCollectionDto } from './dto/create-collection.dto';
@@ -31,5 +40,46 @@ export class CollectionsController {
   })
   create(@Body() createCollectionDto: CreateCollectionDto) {
     return this.collectionsService.create(createCollectionDto);
+  }
+
+  @Get()
+  @ApiOperation({ 
+    summary: 'Get all collections',
+    description: 'Retrieve all collections, optionally filtered by merchant'
+  })
+  @ApiQuery({ 
+    name: 'merchantId', 
+    required: false, 
+    description: 'Filter collections by merchant ID',
+    example: '507f1f77bcf86cd799439011'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Collections retrieved successfully'
+  })
+  findAll(@Query('merchantId') merchantId?: string) {
+    return this.collectionsService.findAll(merchantId);
+  }
+
+  @Get(':id')
+  @ApiOperation({ 
+    summary: 'Get collection by ID',
+    description: 'Retrieve a specific collection with full details'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Collection MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Collection found'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Collection not found' 
+  })
+  findOne(@Param('id') id: string) {
+    return this.collectionsService.findOne(id);
   }
 }
