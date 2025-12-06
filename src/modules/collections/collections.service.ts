@@ -13,7 +13,10 @@ export class CollectionsService {
   ) {}
 
   async create(createCollectionDto: CreateCollectionDto): Promise<Collection> {
-    const collection = new this.collectionModel(createCollectionDto);
+    const collection = new this.collectionModel({
+      ...createCollectionDto,
+      merchantId: new Types.ObjectId(createCollectionDto.merchantId)
+    });
     return collection.save();
   }
 
