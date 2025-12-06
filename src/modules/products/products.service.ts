@@ -12,12 +12,14 @@ import { ProductStatus, ProductType } from '../../common/enums/product.enums';
 import { CreatePhysicalProductDto } from './dto/create-physical-product.dto';
 import { VariantGroupDto } from './dto/shared/variant.dto';
 import { SkuDto } from './dto/shared/sku.dto';
+import { PhysicalProduct } from './schemas/physical-product.schema';
 
 @Injectable()
 export class ProductsService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<ProductDocument>,
     @InjectModel(DigitalProduct.name) private digitalProductModel: Model<DigitalProduct>,
+    @InjectModel(PhysicalProduct.name) private physicalProductModel: Model<PhysicalProduct>,
   ) {}
 
   // ============================================
@@ -73,6 +75,33 @@ export class ProductsService {
   }
 
   // ============================================
+  // Physical Product Operations
+  // ============================================
+
+  async createPhysical(dto: CreatePhysicalProductDto): Promise<Product> {
+    let finalSkuMatrix: any[] = [];
+    
+    if (dto.variantGroups && dto.variantGroups.length > 0) {
+      finalSkuMatrix = this.generateSkuMatrix(dto.variantGroups, dto.skus);
+    }
+
+    // Validate Publish Rules (using the fully constructed data)
+    const fullDataForValidation = { ...dto, skus: finalSkuMatrix };
+    if (dto.status === ProductStatus.PUBLISHED) {
+      this.validatePhysicalPublish(fullDataForValidation);
+    }
+
+    const newProduct = new this.physicalProductModel({
+      ...dto,
+      skuMatrix: finalSkuMatrix, // Save the generated matrix (with skuCodes)
+      merchantId: new Types.ObjectId(dto.merchantId), 
+      collectionId: dto.collectionId ? new Types.ObjectId(dto.collectionId) : undefined,
+    });
+
+    return newProduct.save();
+  }
+
+  // ============================================
   // Validation Logics
   // ============================================
 
@@ -86,6 +115,47 @@ export class ProductsService {
 
     if (data.price === undefined || data.price === null) errors.push('Price is required');
     if (data.quantity === undefined || data.quantity === null) errors.push('Quantity is required');
+
+    if (errors.length > 0) {
+      throw new BadRequestException({ message: 'Validation Failed', errors });
+    }
+  }
+
+  private validatePhysicalPublish(data: CreatePhysicalProductDto) {
+    const errors: string[] = [];
+
+    // Base Validations
+    if (!data.title) errors.push('Title is required');
+    if (!data.description) errors.push('Description is required');
+    if (!data.collectionId) errors.push('Collection is required');
+    if (!data.images || data.images.length === 0) errors.push('At least one image is required');
+
+    // Dimensions
+    if (!data.dimensions || 
+        !data.dimensions.weight || 
+        !data.dimensions.length || 
+        !data.dimensions.width || 
+        !data.dimensions.height) {
+      errors.push('Dimensions (L/W/H) and Weight are required');
+    }
+    
+    if (!data.shippingMethod) errors.push('Shipping Method is required');
+
+    // Variants
+    if (!data.variantGroups || data.variantGroups.length === 0) {
+      errors.push('At least 1 variant group is required');
+    }
+
+    // SKU Existence
+    if (!data.skus || data.skus.length === 0) {
+      errors.push('SKU Matrix is required');
+    } else {
+      // Check individual SKUs
+      data.skus.forEach((sku, i) => {
+        if (sku.price === undefined) errors.push(`SKU #${i} missing Price`);
+        if (sku.quantity === undefined) errors.push(`SKU #${i} missing Quantity`);
+      });
+    }
 
     if (errors.length > 0) {
       throw new BadRequestException({ message: 'Validation Failed', errors });
