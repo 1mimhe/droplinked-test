@@ -107,4 +107,26 @@ export class CollectionsController {
   ) {
     return this.collectionsService.update(id, updateCollectionDto);
   }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ 
+    summary: 'Delete collection',
+    description: 'Permanently delete a collection'
+  })
+  @ApiParam({ 
+    name: 'id', 
+    description: 'Collection ID to delete'
+  })
+  @ApiResponse({ 
+    status: 204, 
+    description: 'Collection deleted successfully'
+  })
+  @ApiResponse({ 
+    status: 404, 
+    description: 'Collection not found' 
+  })
+  remove(@Param('id') id: string) {
+    return this.collectionsService.remove(id);
+  }
 }
